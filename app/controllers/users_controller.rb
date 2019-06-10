@@ -1,14 +1,19 @@
 class UsersController < ApplicationController
   skip_before_action :authenticate_request, only: %i[login register]
+  before_action :check_params ,only: [:register]
 
   # POST /register
   def register
-    @user = User.create(user_params)
+
+    @user = User.new(user_params)
     if @user.save
-      response = { message: 'Successfully Sign Up'}
-      render json: response, status: :created
+      render json: {
+          message: 'Successfully Sign Up',
+          status: :created
+      }
     else
-      render json: @user.errors, status: :bad
+      # byebug
+      render json:  @user.errors.to_h, status: :bad
     end
   end
   def login
@@ -21,6 +26,20 @@ class UsersController < ApplicationController
   end
 
   private
+  def check_params
+    return bad_request_error("name is missing") unless params[:name].present?
+    return bad_request_error("email is missing" )unless params[:email].present?
+    return bad_request_error("password is missing") unless params[:password].present?
+    return bad_request_error("password_confrimation is missing") unless params[:password_confirmation].present?
+
+  end
+
+  def bad_request_error(error_message)
+    render json: {
+        message: error_message
+    }
+
+  end
 
   def authenticate(email, password)
     command = AuthenticateUser.call(email, password)
